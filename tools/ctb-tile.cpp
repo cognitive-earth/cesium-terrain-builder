@@ -485,7 +485,7 @@ public:
         fprintf(fp, "    [ ");
 
       if (level.finalX >= level.startX) {
-        fprintf(fp, "{ \"startX\": %li, \"startY\": %li, \"endX\": %li, \"endY\": %li }",
+        fprintf(fp, "{ \"startX\": %i, \"startY\": %i, \"endX\": %i, \"endY\": %i }",
           level.startX,
           level.startY,
           level.finalX,
@@ -501,7 +501,7 @@ public:
 };
 
 /// Create an empty root temporary elevation file (GTiff)
-static std::string 
+static std::string
 createEmptyRootElevationFile(std::string &fileName, const Grid &grid, const TileCoordinate& coord) {
   GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GTiff");
 
@@ -526,7 +526,7 @@ createEmptyRootElevationFile(std::string &fileName, const Grid &grid, const Tile
   #if ( GDAL_VERSION_MAJOR >= 3 )
   oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
   #endif
-  
+
   if (oSRS.importFromEPSG(4326) != OGRERR_NONE) {
     throw CTBException("Could not create EPSG:4326 spatial reference");
   }
@@ -557,8 +557,8 @@ createEmptyRootElevationFile(std::string &fileName, const Grid &grid, const Tile
   // Finally write the height data
   float *rasterHeights = (float *)CPLCalloc(tileSize * tileSize, sizeof(float));
   GDALRasterBand *heightsBand = poDataset->GetRasterBand(1);
-  if (heightsBand->RasterIO(GF_Write, 0, 0, tileSize, tileSize, 
-                            (void *)rasterHeights, tileSize, tileSize, GDT_Float32, 
+  if (heightsBand->RasterIO(GF_Write, 0, 0, tileSize, tileSize,
+                            (void *)rasterHeights, tileSize, tileSize, GDT_Float32,
                             0, 0) != CE_None) {
     CPLFree(rasterHeights);
     throw CTBException("Could not write heights on temporary elevation file");
@@ -686,7 +686,7 @@ buildMetadata(const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *
   i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
     endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
 
-  const std::string filename = concat(dirname, "layer.json"); 
+  const std::string filename = concat(dirname, "layer.json");
 
   RasterIterator iter(tiler, startZoom, endZoom);
   int currentIndex = incrementIterator(iter, 0);
