@@ -214,10 +214,18 @@ GDALTiler::createRasterTile(GDALDataset *dataset, const TileCoordinate &coord) c
  * This code is adapted from that found in `gdalwarp.cpp` implementing the
  * `gdalwarp -ovr` option.
  */
-#if ( GDAL_VERSION_MAJOR >= 3 )
-#include "gdaloverviewdataset.cpp"
+#if   ( GDAL_VERSION_MAJOR >= 3 && GDAL_VERSION_MINOR >= 11)
+#include "overviews/gdaloverviewdataset-gdal3.11.x.cpp"
+#elif ( GDAL_VERSION_MAJOR >= 3 && GDAL_VERSION_MINOR == 10)
+#include "overviews/gdaloverviewdataset-gdal3.10.x.cpp"
+#elif ( GDAL_VERSION_MAJOR >= 3 && GDAL_VERSION_MINOR == 9 )
+#include "overviews/gdaloverviewdataset-gdal3.9.x.cpp"
+#elif ( GDAL_VERSION_MAJOR >= 3 && GDAL_VERSION_MINOR == 8 )
+#include "overviews/gdaloverviewdataset-gdal3.8.x.cpp"
+#elif ( GDAL_VERSION_MAJOR >= 3 )
+#include "overviews/gdaloverviewdataset-gdal3x.cpp"
 #elif ( GDAL_VERSION_MAJOR >= 2 && GDAL_VERSION_MINOR >= 2 )
-#include "gdaloverviewdataset-gdal2x.cpp"
+#include "overviews/gdaloverviewdataset-gdal2x.cpp"
 #endif
 
 static
