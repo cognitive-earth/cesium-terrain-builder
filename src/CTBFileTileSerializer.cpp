@@ -83,6 +83,29 @@ ctb::CTBFileTileSerializer::getTileFilename(const TileCoordinate *coord, const s
   return filename;
 }
 
+/// Get the Y index for serialization, optionally flipped for XYZ
+i_tile
+ctb::CTBFileTileSerializer::tileYForCoordinate(const TileCoordinate *coord) const {
+  if (!museXYZ) {
+    return coord->y;
+  }
+
+  const i_tile tilesY = static_cast<i_tile>(1u) << coord->zoom;
+  return (tilesY - 1) - coord->y;
+}
+
+/// Create a filename for a tile coordinate, honoring XYZ if configured
+std::string
+ctb::CTBFileTileSerializer::getTileFilenameForCoordinate(const TileCoordinate *coord, const char *extension) const {
+  if (!museXYZ) {
+    return getTileFilename(coord, moutputDir, extension);
+  }
+
+  TileCoordinate adjusted(*coord);
+  adjusted.y = tileYForCoordinate(coord);
+  return getTileFilename(&adjusted, moutputDir, extension);
+}
+
 /// Check if file exists
 static bool
 fileExists(const std::string& filename) {
@@ -99,7 +122,7 @@ bool ctb::CTBFileTileSerializer::mustSerializeCoordinate(const ctb::TileCoordina
   if (!mresume)
     return true;
 
-  const string filename = getTileFilename(coordinate, moutputDir, "terrain");
+  const string filename = getTileFilenameForCoordinate(coordinate, "terrain");
   return !fileExists(filename);
 }
 
@@ -110,7 +133,7 @@ bool ctb::CTBFileTileSerializer::mustSerializeCoordinate(const ctb::TileCoordina
 bool 
 ctb::CTBFileTileSerializer::serializeTile(const ctb::GDALTile *tile, GDALDriver *driver, const char *extension, CPLStringList &creationOptions) {
   const TileCoordinate *coordinate = tile;
-  const string filename = getTileFilename(coordinate, moutputDir, extension);
+  const string filename = getTileFilenameForCoordinate(coordinate, extension);
   const string temp_filename = concat(filename, ".tmp");
 
   GDALDataset *poDstDS;
@@ -135,7 +158,7 @@ ctb::CTBFileTileSerializer::serializeTile(const ctb::GDALTile *tile, GDALDriver 
 bool
 ctb::CTBFileTileSerializer::serializeTile(const ctb::TerrainTile *tile) {
   const TileCoordinate *coordinate = tile;
-  const string filename = getTileFilename(tile, moutputDir, "terrain");
+  const string filename = getTileFilenameForCoordinate(coordinate, "terrain");
   const string temp_filename = concat(filename, ".tmp");
 
   CTBZFileOutputStream ostream(temp_filename.c_str());
@@ -155,7 +178,7 @@ ctb::CTBFileTileSerializer::serializeTile(const ctb::TerrainTile *tile) {
 bool
 ctb::CTBFileTileSerializer::serializeTile(const ctb::MeshTile *tile, bool writeVertexNormals) {
   const TileCoordinate *coordinate = tile;
-  const string filename = getTileFilename(coordinate, moutputDir, "terrain");
+  const string filename = getTileFilenameForCoordinate(coordinate, "terrain");
   const string temp_filename = concat(filename, ".tmp");
 
   CTBZFileOutputStream ostream(temp_filename.c_str());

@@ -71,6 +71,7 @@ public:
     outputDir("."),
     outputFormat("Terrain"),
     profile("geodetic"),
+    tilingScheme("tms"),
     threadCount(-1),
     tileSize(0),
     startZoom(-1),
@@ -112,6 +113,17 @@ public:
   static void
   setProfile(command_t *command) {
     static_cast<TerrainBuild *>(Command::self(command))->profile = command->arg;
+  }
+
+  static void
+  setTilingScheme(command_t *command) {
+    if (strcmp(command->arg, "tms") == 0 || strcmp(command->arg, "xyz") == 0) {
+      static_cast<TerrainBuild *>(Command::self(command))->tilingScheme = command->arg;
+      return;
+    }
+
+    cerr << "Error: Unknown tiling scheme: " << command->arg << endl;
+    static_cast<TerrainBuild *>(Command::self(command))->help(); // exit
   }
 
   static void
@@ -227,7 +239,8 @@ public:
 
   const char *outputDir,
     *outputFormat,
-    *profile;
+    *profile,
+    *tilingScheme;
 
   int threadCount,
     tileSize,
@@ -434,7 +447,7 @@ public:
   /// http://help.agi.com/TerrainServer/RESTAPIGuide.html
   /// Example:
   /// https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles/layer.json
-  void writeJsonFile(const std::string &filename, const std::string &datasetName, const std::string &outputFormat = "Terrain", const std::string &profile = "geodetic", bool writeVertexNormals = false) const {
+  void writeJsonFile(const std::string &filename, const std::string &datasetName, const std::string &outputFormat = "Terrain", const std::string &profile = "geodetic", bool writeVertexNormals = false, const std::string &tilingScheme = "tms") const {
     FILE *fp = fopen(filename.c_str(), "w");
 
     if (fp == NULL) {
@@ -457,7 +470,8 @@ public:
       fprintf(fp, "  \"format\": \"GDAL\",\n");
     }
     fprintf(fp, "  \"attribution\": \"\",\n");
-    fprintf(fp, "  \"schema\": \"tms\",\n");
+    const bool useXYZ = (strcmp(tilingScheme.c_str(), "xyz") == 0);
+    fprintf(fp, "  \"schema\": \"%s\",\n", useXYZ ? "xyz" : "tms");
     if (writeVertexNormals) {
       fprintf(fp, "  \"extensions\": [ \"octvertexnormals\" ],\n");
     }
@@ -485,11 +499,18 @@ public:
         fprintf(fp, "    [ ");
 
       if (level.finalX >= level.startX) {
+        int startY = level.startY;
+        int endY = level.finalY;
+        if (useXYZ) {
+          const i_tile maxY = (static_cast<i_tile>(1u) << static_cast<i_zoom>(i)) - 1;
+          startY = static_cast<int>(maxY) - level.finalY;
+          endY = static_cast<int>(maxY) - level.startY;
+        }
         fprintf(fp, "{ \"startX\": %i, \"startY\": %i, \"endX\": %i, \"endY\": %i }",
           level.startX,
-          level.startY,
+          startY,
           level.finalX,
-          level.finalY);
+          endY);
       }
       fprintf(fp, " ]\n");
     }
@@ -718,7 +739,8 @@ runTiler(const char *inputFilename, TerrainBuild *command, Grid *grid, TerrainMe
   TerrainMetadata *threadMetadata = metadata ? new TerrainMetadata() : NULL;
 
   // Choose serializer of tiles (Directory of files, MBTiles store...)
-  CTBFileTileSerializer serializer(string(command->outputDir) + osDirSep, command->resume);
+  bool useXYZ = strcmp(command->tilingScheme, "xyz") == 0;
+  CTBFileTileSerializer serializer(string(command->outputDir) + osDirSep, command->resume, useXYZ);
 
   try {
     serializer.startSerialization();
@@ -763,6 +785,7 @@ main(int argc, char *argv[]) {
   command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", TerrainBuild::setOutputDir);
   command.option("-f", "--output-format <format>", "specify the output format for the tiles. This is either `Terrain` (the default), `Mesh` (Chunked LOD mesh), or any format listed by `gdalinfo --formats`", TerrainBuild::setOutputFormat);
   command.option("-p", "--profile <profile>", "specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`", TerrainBuild::setProfile);
+  command.option("-y", "--tiling-scheme <scheme>", "specify the tiling scheme for Y. This is either `tms` (the default, origin south) or `xyz` (origin north)", TerrainBuild::setTilingScheme);
   command.option("-c", "--thread-count <count>", "specify the number of threads to use for tile generation. On multicore machines this defaults to the number of CPUs", TerrainBuild::setThreadCount);
   command.option("-t", "--tile-size <size>", "specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats", TerrainBuild::setTileSize);
   command.option("-s", "--start-zoom <zoom>", "specify the zoom level to start at. This should be greater than the end zoom level", TerrainBuild::setStartZoom);
@@ -899,7 +922,7 @@ main(int argc, char *argv[]) {
     const size_t rfindpos = datasetName.rfind('.');
     if (std::string::npos != rfindpos) datasetName = datasetName.erase(rfindpos);
 
-    metadata->writeJsonFile(filename, datasetName, std::string(command.outputFormat), std::string(command.profile), command.vertexNormals);
+    metadata->writeJsonFile(filename, datasetName, std::string(command.outputFormat), std::string(command.profile), command.vertexNormals, std::string(command.tilingScheme));
     delete metadata;
   }
 

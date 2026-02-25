@@ -40,8 +40,12 @@ class CTB_DLL ctb::CTBFileTileSerializer :
   public ctb::MeshSerializer {
 public:
   CTBFileTileSerializer(const std::string &outputDir, bool resume):
-    moutputDir(outputDir), 
-    mresume(resume) {}
+    CTBFileTileSerializer(outputDir, resume, false) {}
+
+  CTBFileTileSerializer(const std::string &outputDir, bool resume, bool useXYZ):
+    moutputDir(outputDir),
+    mresume(resume),
+    museXYZ(useXYZ) {}
 
   /// Start a new serialization task
   virtual void startSerialization() {};
@@ -65,10 +69,15 @@ public:
   getTileFilename(const TileCoordinate *coord, const std::string dirname, const char *extension);
 
 protected:
+  std::string getTileFilenameForCoordinate(const TileCoordinate *coord, const char *extension) const;
+  i_tile tileYForCoordinate(const TileCoordinate *coord) const;
+
   /// The target directory where serializing
   std::string moutputDir;
   /// Do not overwrite existing files
   bool mresume;
+  /// Whether to emit XYZ tile coordinates
+  bool museXYZ;
 };
 
 #endif /* CTBFILETILESERIALIZER_HPP */

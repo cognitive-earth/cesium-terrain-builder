@@ -81,6 +81,7 @@ Options:
   -N --vertex-normals                 flag writes 'Oct-Encoded Per-Vertex Normals' for Terrain Lighting, only for `Mesh` format
   -q --quiet                          flag outputs only errors
   -v --verbose                        flag outputs more noisy
+  -y                                  specify the tiling scheme (tms or xyz, default to tms). In the default mode (TMS), tiles at y=0 are the southern-most tiles, whereas in XYZ mode (OSM Slippy Map standard), tiles at y=0 are the northern-most tiles.
 ```
 
 #### Recommendations
