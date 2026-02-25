@@ -447,7 +447,7 @@ public:
   /// http://help.agi.com/TerrainServer/RESTAPIGuide.html
   /// Example:
   /// https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles/layer.json
-  void writeJsonFile(const std::string &filename, const std::string &datasetName, const std::string &outputFormat = "Terrain", const std::string &profile = "geodetic", bool writeVertexNormals = false, const std::string &tilingScheme = "tms") const {
+  void writeJsonFile(const std::string &filename, const std::string &datasetName, const std::string &outputFormat = "Terrain", const std::string &profile = "geodetic", bool writeVertexNormals = false) const {
     FILE *fp = fopen(filename.c_str(), "w");
 
     if (fp == NULL) {
@@ -470,8 +470,7 @@ public:
       fprintf(fp, "  \"format\": \"GDAL\",\n");
     }
     fprintf(fp, "  \"attribution\": \"\",\n");
-    const bool useXYZ = (strcmp(tilingScheme.c_str(), "xyz") == 0);
-    fprintf(fp, "  \"schema\": \"%s\",\n", useXYZ ? "xyz" : "tms");
+    fprintf(fp, "  \"schema\": \"tms\",\n");
     if (writeVertexNormals) {
       fprintf(fp, "  \"extensions\": [ \"octvertexnormals\" ],\n");
     }
@@ -499,18 +498,11 @@ public:
         fprintf(fp, "    [ ");
 
       if (level.finalX >= level.startX) {
-        int startY = level.startY;
-        int endY = level.finalY;
-        if (useXYZ) {
-          const i_tile maxY = (static_cast<i_tile>(1u) << static_cast<i_zoom>(i)) - 1;
-          startY = static_cast<int>(maxY) - level.finalY;
-          endY = static_cast<int>(maxY) - level.startY;
-        }
         fprintf(fp, "{ \"startX\": %i, \"startY\": %i, \"endX\": %i, \"endY\": %i }",
           level.startX,
-          startY,
+          level.startY,
           level.finalX,
-          endY);
+          level.finalY);
       }
       fprintf(fp, " ]\n");
     }
@@ -922,7 +914,7 @@ main(int argc, char *argv[]) {
     const size_t rfindpos = datasetName.rfind('.');
     if (std::string::npos != rfindpos) datasetName = datasetName.erase(rfindpos);
 
-    metadata->writeJsonFile(filename, datasetName, std::string(command.outputFormat), std::string(command.profile), command.vertexNormals, std::string(command.tilingScheme));
+    metadata->writeJsonFile(filename, datasetName, std::string(command.outputFormat), std::string(command.profile), command.vertexNormals);
     delete metadata;
   }
 
